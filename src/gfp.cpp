@@ -12,7 +12,7 @@ class GFP {
 	char in_byte;
 	long long registr;
 	long long buf;
-	int buf_find_header;
+	unsigned int buf_find_header;
 	char mask[8];
 	char mask_L[8];
 	int flag;
@@ -22,6 +22,8 @@ class GFP {
 	int lenght;
 	unsigned short crc;
 	unsigned int header;
+	unsigned short buf_lenght;
+	unsigned short buf_crc;
 
 public:
 	GFP() {
@@ -34,6 +36,8 @@ public:
 		lenght = 0;
 		crc = 0;
 		header = 0;
+		buf_lenght = 0;
+		buf_crc = 0;
 
 		mask[0] = 0x01;
 		mask[1] = 0x02;
@@ -87,8 +91,8 @@ public:
 				crc = (header ^ 0xB6AB31E0) & 0xFFFF;
 				unsigned char pc[2] = {(lenght >> 8) & 0xff, lenght & 0xff};
 
-				//проверка CRC заголовка пакета
-				if (crc != Crc16(pc , 2)) {
+				// проверка CRC заголовка пакета
+				if (crc != Crc16(pc, 2)) {
 					if (crc == 0) {
 						lenght = 0;
 					}
@@ -118,8 +122,8 @@ public:
 				buf = (registr & 0x01) ^ buf;
 				out_byte = out_byte | (buf & 0x01);
 			}
-			if (count_h>7) {
-            	fwrite(&out_byte, sizeof(char), 1, of);
+			if (count_h > 7) {
+				fwrite(&out_byte, sizeof(char), 1, of);
 			}
 			lenght -= 1;
 			count_h += 1;
@@ -130,17 +134,34 @@ public:
 		return;
 	}
 
-	inline void AddData(char in_byte, FILE* of) {
+	inline int TrueHeader(unsigned int hdr) {
+		unsigned short l = (0xffff0000 & hdr) >> 16;
+		unsigned short c = 0xffff & hdr;
+		unsigned char pcc[2] = {
+			((l >> 8) & 0xff) ^ 0xB6, (l & 0xff) ^ 0xAB};
+		l = Crc16(pcc, 2);
+		c = c ^ 0x31E0;
+		if (l == c){
+            return 1;
+		}
+		else{
+            return 0;
+		}
+	}
+
+	inline void AddData(char in_byte, FILE* f, FILE* of) {
 		if (!flag) {
 			for (int i = 0; i < 8; i++) {
 				buf_find_header = buf_find_header << 1;
-				char v1 = in_byte & mask[i];
-				if (v1) {
+				if (in_byte & mask[i]) {
 					buf_find_header = buf_find_header | 0x01;
 				}
-				if ((0xffffffff & buf_find_header) == 0xB6AB31E0) {
+				//(0xffffffff & buf_find_header) == 0xB6AB31E0
+				if (TrueHeader(buf_find_header)) {
+                    TrueHeader(buf_find_header);
 					delta = (i + 1) % 8;
 					ost = 0xff & (in_byte & mask_L[delta]);
+					fseek(f, -4, SEEK_CUR);
 					flag = 1;
 					return;
 				}
@@ -174,7 +195,7 @@ public:
 
 		while (countAllByte < sz) {
 			fread(&in_byte, sizeof(char), 1, f);
-			AddData(in_byte, of);
+			AddData(in_byte, f, of);
 			countAllByte += 1;
 			if (countAllByte % 100000 == 0) {
 				cout << "Complite: " << double(countAllByte) / double(sz)
@@ -185,4 +206,3 @@ public:
 		cout << "Complite: 100%            " << endl;
 	}
 };
-

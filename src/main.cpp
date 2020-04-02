@@ -13,10 +13,10 @@ int main(int argc, char* argv[]) {
 	const char* out_filename;
 	const char* in_filename;
 
-	// in_filename = "gfp0.bin";
-	// out_filename = "out.ips";
+	 in_filename = "gfp.bin";
+	 out_filename = "out.ips";
 
-	if (argc != 3) {
+	/*if (argc != 3) {
 		printf(
 			"Please specify the parameters: descrembler_GFP <path_input_file> <path_output_file>\n");
 		printf("Press any key to continue...\n");
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	in_filename = argv[1];
-	out_filename = argv[2];
+	out_filename = argv[2];*/
 
 	FILE *f, *of;
 	f = fopen(in_filename, "rb");
