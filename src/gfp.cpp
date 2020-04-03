@@ -134,6 +134,38 @@ public:
 		return;
 	}
 
+	inline unsigned int FindNextHeder(unsigned int hdr, FILE* f, int d) {
+		unsigned short len = ((0xffff0000 & hdr) >> 16) ^ 0xB6AB;
+		fseek(f, len - 1, SEEK_CUR);
+
+		unsigned char nextHeader;
+		unsigned long long outHeaderLong = 0;
+		// 1
+		outHeaderLong <<= 8;
+		fread(&nextHeader, sizeof(unsigned char), 1, f);
+		outHeaderLong |= reverseByte(nextHeader) & 0x00000000000000ff;
+		// 2
+		outHeaderLong <<= 8;
+		fread(&nextHeader, sizeof(unsigned char), 1, f);
+		outHeaderLong |= reverseByte(nextHeader) & 0x00000000000000ff;
+		// 3
+		outHeaderLong <<= 8;
+		fread(&nextHeader, sizeof(unsigned char), 1, f);
+		outHeaderLong |= reverseByte(nextHeader) & 0x00000000000000ff;
+		// 4
+		outHeaderLong <<= 8;
+		fread(&nextHeader, sizeof(unsigned char), 1, f);
+		outHeaderLong |= reverseByte(nextHeader) & 0x00000000000000ff;
+		// 5
+		outHeaderLong <<= 8;
+		fread(&nextHeader, sizeof(unsigned char), 1, f);
+		outHeaderLong |= reverseByte(nextHeader) & 0x00000000000000ff;
+
+		unsigned int outHeader = (outHeaderLong >> d) & 0xffffffff;
+
+		return outHeader;
+	}
+
 	inline int TrueHeader(unsigned int hdr) {
 		unsigned short l = (0xffff0000 & hdr) >> 16;
 		unsigned short c = 0xffff & hdr;
@@ -156,19 +188,30 @@ public:
 				if (in_byte & mask[i]) {
 					buf_find_header = buf_find_header | 0x01;
 				}
-				//(0xffffffff & buf_find_header) == 0xB6AB31E0
-				if (TrueHeader(buf_find_header)) {
-                    TrueHeader(buf_find_header);
-					delta = (i + 1) % 8;
-					ost = 0xff & (in_byte & mask_L[delta]);
-					fseek(f, -4, SEEK_CUR);
-					flag = 1;
-					return;
+
+				if (TrueHeader(buf_find_header)) { // проверка 1
+					int flag_cur = ftell(f);
+					buf_find_header = FindNextHeder(buf_find_header, f, 7 - i);
+					if (TrueHeader(buf_find_header)) { // проверка 2
+						buf_find_header = FindNextHeder(buf_find_header, f, 7 - i);
+						if (TrueHeader(buf_find_header)) { // проверка 3
+							buf_find_header = FindNextHeder(buf_find_header, f, 7 - i);
+							if (TrueHeader(buf_find_header)) { // проверка 4
+								fseek(f, flag_cur - ftell(f), SEEK_CUR);
+								delta = (i + 1) % 8;
+								fseek(f, -5, SEEK_CUR);
+								fread(&in_byte, sizeof(char), 1, f);
+								ost = 0xff & (in_byte & mask_L[delta]);
+								flag = 1;
+								return;
+							}
+						}
+					}
 				}
 			}
 		}
 		else {
-			char byte(0);
+			unsigned char byte(0);
 			byte = in_byte;
 			if (delta != 0) {
 				byte = byte << (8 - delta);
