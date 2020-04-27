@@ -34,15 +34,20 @@ private:
 class GFP {
 	int delta;
 	int ost;
+
+	int ips_lenght;
 	char out_byte;
 	char in_byte;
 	long long registr;
 	long long buf;
 
+
 public:
 	GFP() {
 		delta = 0;
 		ost = 0;
+
+		ips_lenght = 0;
 		out_byte = 0;
 		in_byte = 0;
 		registr = 0;
@@ -130,6 +135,7 @@ public:
 	}
 
 	char GetData(FILE* f) {
+
 		fread(&in_byte, sizeof(char), 1, f);
 		out_byte = 0;
 		// дескремблируем
@@ -141,7 +147,6 @@ public:
 			buf = (registr & 0x01) ^ buf;
 			out_byte = out_byte | (buf & 0x01);
 		}
-		return out_byte;
 	}
 
 };
@@ -188,7 +193,7 @@ int main(int argc, char* argv[]) {
 	int crc(0);
 	char out_byte(0);
 	int c(0);
-	int ips_lenght(0);
+
 
 	fwrite("IP_STREAM", sizeof("IP_STREAM") - 1, 1, of);
 	GFP frame;

@@ -34,18 +34,11 @@ private:
 class GFP {
 	int delta;
 	int ost;
-	char out_byte;
-	char in_byte;
-	long long registr;
-	long long buf;
 
 public:
 	GFP() {
 		delta = 0;
 		ost = 0;
-		out_byte = 0;
-		in_byte = 0;
-		registr = 0;
 	}
 
 	inline char reverseByte(char byte) {
@@ -130,18 +123,7 @@ public:
 	}
 
 	char GetData(FILE* f) {
-		fread(&in_byte, sizeof(char), 1, f);
-		out_byte = 0;
-		// дескремблируем
-		for (int j = 0; j < 8; j++) {
-			registr = registr >> 1;
-			out_byte = out_byte << 1;
-			buf = (in_byte >> (j)) & 0x01;
-			registr = registr | (buf << 43);
-			buf = (registr & 0x01) ^ buf;
-			out_byte = out_byte | (buf & 0x01);
-		}
-		return out_byte;
+
 	}
 
 };
@@ -185,10 +167,13 @@ int main(int argc, char* argv[]) {
 
 	int header(0);
 	int lenght(0);
+	int ips_lenght(0);
 	int crc(0);
 	char out_byte(0);
+	char in_byte(0);
 	int c(0);
-	int ips_lenght(0);
+	long long registr(0);
+	long long buf;
 
 	fwrite("IP_STREAM", sizeof("IP_STREAM") - 1, 1, of);
 	GFP frame;
@@ -228,6 +213,17 @@ int main(int argc, char* argv[]) {
 			}
 
 			out_byte = frame.GetData(f);
+			fread(&in_byte, sizeof(char), 1, f);
+			out_byte = 0;
+			// дескремблируем
+			for (int j = 0; j < 8; j++) {
+				registr = registr >> 1;
+				out_byte = out_byte << 1;
+				buf = (in_byte >> (j)) & 0x01;
+				registr = registr | (buf << 43);
+				buf = (registr & 0x01) ^ buf;
+				out_byte = out_byte | (buf & 0x01);
+			}
 
 			if (i > 3) {
 				fwrite(&out_byte, sizeof(char), 1, of);

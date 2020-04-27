@@ -130,6 +130,7 @@ public:
 	}
 
 	char GetData(FILE* f) {
+
 		fread(&in_byte, sizeof(char), 1, f);
 		out_byte = 0;
 		// дескремблируем
@@ -141,7 +142,6 @@ public:
 			buf = (registr & 0x01) ^ buf;
 			out_byte = out_byte | (buf & 0x01);
 		}
-		return out_byte;
 	}
 
 };
