@@ -41,8 +41,9 @@ class GFP {
 	long long buf;
 	int buf_find_header;
 	char mask[8];
+	char mask_L[8];
 	int flag;
-	char ost;
+	unsigned char ost;
 	int delta;
 
 public:
@@ -60,6 +61,15 @@ public:
 		mask[5] = 0x20;
 		mask[6] = 0x40;
 		mask[7] = 0x80;
+
+		mask_L[0] = 0x00;
+		mask_L[7] = 0x80;
+		mask_L[6] = 0xC0;
+		mask_L[5] = 0xE0;
+		mask_L[4] = 0xF0;
+		mask_L[3] = 0xF8;
+		mask_L[2] = 0xFC;
+		mask_L[1] = 0xFE;
 	}
 
 	inline char reverseByte(char byte) {
@@ -72,7 +82,7 @@ public:
 		return out_byte;
 	}
 
-	void inline descrembler_and_out_byte(char byte, FILE* f, FILE* of) {
+	inline void descrembler_and_out_byte(char byte, FILE* f, FILE* of) {
 		out_byte = 0;
 		// дескремблируем
 		for (int j = 0; j < 8; j++) {
@@ -90,11 +100,12 @@ public:
 			for (int i = 0; i < 8; i++) {
 				buf_find_header = buf_find_header << 1;
 				char v1 = in_byte & mask[i];
-				int v = v1 >> i;
-				buf_find_header = buf_find_header | (v);
+				if (v1) {
+                	buf_find_header = buf_find_header | 0x01;
+				}
 				if ((0xffffffff & buf_find_header) == 0xB6AB31E0) {
-					ost = 0xff & (in_byte >> i);
-					delta = i;
+					delta = (i+1) % 8;
+					ost = 0xff & (in_byte & mask_L[delta]);
 					flag = 1;
 					return;
 				}
@@ -102,8 +113,14 @@ public:
 		}
 		else {
 			char byte(0);
-			byte = (0xff & (in_byte << 8 - delta)) & ost;
-			ost = in_byte >> delta;
+			byte = in_byte;
+			if (delta!=0) {
+            	byte = byte << (8-delta);
+			}
+			byte = byte & 0xff;
+			ost = ost >> delta;
+			byte = byte | ost;
+			ost = in_byte & mask_L[delta];//>> (8 - delta);
 			descrembler_and_out_byte(byte, f, of);
 		}
 	}
@@ -200,7 +217,7 @@ int main(int argc, char* argv[]) {
 	const char* out_filename;
 	const char* in_filename;
 
-	in_filename = "gfp.bin";
+	in_filename = "gfp5.bin";
 	out_filename = "out.ips";
 
 	/*
