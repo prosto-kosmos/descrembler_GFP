@@ -112,9 +112,7 @@ public:
 			if (count_h == 4) {
 				count_packege+=1;
 				if (count_packege>1) {
-					lenght = lenght - 4;
 					fwrite((char*) & lenght, 4, 1, of);
-					lenght = lenght + 4;
 				}
 			}
 			out_byte = 0;
@@ -127,7 +125,7 @@ public:
 				buf = (registr & 0x01) ^ buf;
 				out_byte = out_byte | (buf & 0x01);
 			}
-			if (count_h > 7) {
+			if (count_h > 3) {
 				if (count_packege>1) {
                 	fwrite(&out_byte, sizeof(char), 1, of);
 				}
