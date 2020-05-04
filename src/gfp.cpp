@@ -24,6 +24,7 @@ class GFP {
 	unsigned int header;
 	unsigned short buf_lenght;
 	unsigned short buf_crc;
+	int count_packege;
 
 public:
 	GFP() {
@@ -38,6 +39,7 @@ public:
 		header = 0;
 		buf_lenght = 0;
 		buf_crc = 0;
+		count_packege = 0;
 
 		mask[0] = 0x01;
 		mask[1] = 0x02;
@@ -108,9 +110,12 @@ public:
 		}
 		else if (lenght != 0) {
 			if (count_h == 4) {
-				lenght = lenght - 4;
-				fwrite((char*) & lenght, 4, 1, of);
-				lenght = lenght + 4;
+				count_packege+=1;
+				if (count_packege>1) {
+					lenght = lenght - 4;
+					fwrite((char*) & lenght, 4, 1, of);
+					lenght = lenght + 4;
+				}
 			}
 			out_byte = 0;
 			// дескремблируем
@@ -123,7 +128,9 @@ public:
 				out_byte = out_byte | (buf & 0x01);
 			}
 			if (count_h > 7) {
-				fwrite(&out_byte, sizeof(char), 1, of);
+				if (count_packege>1) {
+                	fwrite(&out_byte, sizeof(char), 1, of);
+				}
 			}
 			lenght -= 1;
 			count_h += 1;
